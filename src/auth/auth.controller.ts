@@ -13,6 +13,7 @@ import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { UploadsService } from '../uploads/uploads.service';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -60,5 +61,11 @@ export class AuthController {
     const uploadResult = await this.uploadsService.uploadImage(file);
 
     return this.authService.register(registerDto, uploadResult.secure_url);
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 }

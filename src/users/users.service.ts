@@ -15,6 +15,19 @@ export class UsersService {
     return this.userModel.findOne({ email: email.toLowerCase().trim() }).exec();
   }
 
+  async findByIdentifier(identifier: string): Promise<UserDocument | null> {
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+
+    return this.userModel
+      .findOne({
+        $or: [
+          { email: normalizedIdentifier },
+          { username: normalizedIdentifier },
+        ],
+      })
+      .exec();
+  }
+
   findByUsername(username: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ username: username.trim() }).exec();
   }

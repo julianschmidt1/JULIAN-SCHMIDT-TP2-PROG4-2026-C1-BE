@@ -32,6 +32,7 @@ export class User {
   @Prop({
     required: true,
     unique: true,
+    lowercase: true,
     trim: true,
   })
   username!: string;
