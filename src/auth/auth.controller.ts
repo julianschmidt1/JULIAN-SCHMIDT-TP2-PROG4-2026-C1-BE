@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -58,6 +59,10 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    if (!file) {
+      throw new BadRequestException('Profile image is required');
+    }
+
     const uploadResult = await this.uploadsService.uploadImage(file);
 
     return this.authService.register(registerDto, uploadResult.secure_url);
