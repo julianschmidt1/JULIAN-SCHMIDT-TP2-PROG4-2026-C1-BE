@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   BadRequestException,
   Body,
@@ -141,8 +140,11 @@ export class PostsController {
   }
 
   @Get()
-  findAll(@Query() query: GetPostsQueryDto) {
-    return this.postsService.findAll(query);
+  findAll(
+    @Query() query: GetPostsQueryDto,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.postsService.findAll(query, userId);
   }
 
   @Delete(':id')
@@ -178,30 +180,19 @@ export class PostsController {
     required: true,
     description: 'user id (hasta poner jwt)',
   })
-  like(@Param('id') postId: string, @Headers('x-user-id') userId: string) {
+  toggleLike(
+    @Param('id') postId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
     if (!userId) {
       throw new BadRequestException('User id is required');
     }
 
-    return this.postsService.like(postId, userId);
-  }
-
-  @Delete(':id/like')
-  @ApiHeader({
-    name: 'x-user-id',
-    required: true,
-    description: 'user id (hasta poner jwt)',
-  })
-  unlike(@Param('id') postId: string, @Headers('x-user-id') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('User id is required');
-    }
-
-    return this.postsService.unlike(postId, userId);
+    return this.postsService.toggleLike(postId, userId);
   }
 
   @Get(':id')
-  findById(@Param('id') postId: string) {
-    return this.postsService.findById(postId);
+  findById(@Param('id') postId: string, @Headers('x-user-id') userId?: string) {
+    return this.postsService.findById(postId, userId);
   }
 }

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   ForbiddenException,
@@ -31,7 +34,12 @@ export class PostsService {
       author: authorId,
     });
 
-    return this.toResponseDto(post);
+    await post.populate(
+      'author',
+      'firstName lastName username profileImageUrl',
+    );
+
+    return this.toResponseDto(post, authorId);
   }
 
   async update(
@@ -43,7 +51,10 @@ export class PostsService {
   ): Promise<PostResponseDto> {
     this.validateObjectId(postId);
 
-    const post = await this.postModel.findById(postId).exec();
+    const post = await this.postModel
+      .findById(postId)
+      .populate('author', 'firstName lastName username profileImageUrl')
+      .exec();
 
     if (!post || !post.isActive) {
       throw new NotFoundException('Post not found');
@@ -70,10 +81,13 @@ export class PostsService {
 
     const updatedPost = await post.save();
 
-    return this.toResponseDto(updatedPost);
+    return this.toResponseDto(updatedPost, userId);
   }
 
-  async findAll(query: GetPostsQueryDto): Promise<PostResponseDto[]> {
+  async findAll(
+    query: GetPostsQueryDto,
+    currentUserId?: string,
+  ): Promise<PostResponseDto[]> {
     const offset = Number(query.offset ?? 0);
     const limit = Number(query.limit ?? 10);
 
@@ -87,12 +101,13 @@ export class PostsService {
 
     const posts = await this.postModel
       .find(filter)
+      .populate('author', 'firstName lastName username profileImageUrl')
       .sort(query.sort === 'likes' ? { likes: -1 } : { createdAt: -1 })
       .skip(offset)
       .limit(limit)
       .exec();
 
-    return posts.map((post) => this.toResponseDto(post));
+    return posts.map((post) => this.toResponseDto(post, currentUserId));
   }
 
   async delete(
@@ -102,7 +117,10 @@ export class PostsService {
   ): Promise<PostResponseDto> {
     this.validateObjectId(postId);
 
-    const post = await this.postModel.findById(postId).exec();
+    const post = await this.postModel
+      .findById(postId)
+      .populate('author', 'firstName lastName username profileImageUrl')
+      .exec();
 
     if (!post || !post.isActive) {
       throw new NotFoundException('Post not found');
@@ -119,17 +137,33 @@ export class PostsService {
 
     const deletedPost = await post.save();
 
-    return this.toResponseDto(deletedPost);
+    return this.toResponseDto(deletedPost, userId);
   }
 
-  private toResponseDto(post: PostDocument): PostResponseDto {
+  private toResponseDto(
+    post: PostDocument,
+    currentUserId?: string,
+  ): PostResponseDto {
+    const author = post.author as any;
+
     return {
       id: post._id.toString(),
       title: post.title,
       description: post.description,
       imageUrl: post.imageUrl,
-      author: post.author.toString(),
+      author: {
+        id: author._id?.toString() ?? author.toString(),
+        firstName: author.firstName ?? '',
+        lastName: author.lastName ?? '',
+        username: author.username ?? '',
+        profileImageUrl: author.profileImageUrl ?? '',
+      },
       likes: post.likes.length,
+      likedByCurrentUser: currentUserId
+        ? post.likes.some(
+            (likeUserId) => likeUserId.toString() === currentUserId,
+          )
+        : false,
       isActive: post.isActive,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
@@ -142,10 +176,13 @@ export class PostsService {
     }
   }
 
-  async like(postId: string, userId: string): Promise<PostResponseDto> {
+  async toggleLike(postId: string, userId: string): Promise<PostResponseDto> {
     this.validateObjectId(postId);
 
-    const post = await this.postModel.findById(postId).exec();
+    const post = await this.postModel
+      .findById(postId)
+      .populate('author', 'firstName lastName username profileImageUrl')
+      .exec();
 
     if (!post || !post.isActive) {
       throw new NotFoundException('Post not found');
@@ -155,43 +192,34 @@ export class PostsService {
       return likeUserId.toString() === userId;
     });
 
-    if (!alreadyLiked) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      post.likes.push(userId as any);
+    if (alreadyLiked) {
+      post.likes = post.likes.filter((likeUserId) => {
+        return likeUserId.toString() !== userId;
+      });
+    } else {
+      post.likes.push(userId as never);
     }
 
     const updatedPost = await post.save();
 
-    return this.toResponseDto(updatedPost);
+    return this.toResponseDto(updatedPost, userId);
   }
 
-  async unlike(postId: string, userId: string): Promise<PostResponseDto> {
+  async findById(
+    postId: string,
+    currentUserId?: string,
+  ): Promise<PostResponseDto> {
     this.validateObjectId(postId);
 
-    const post = await this.postModel.findById(postId).exec();
+    const post = await this.postModel
+      .findById(postId)
+      .populate('author', 'firstName lastName username profileImageUrl')
+      .exec();
 
     if (!post || !post.isActive) {
       throw new NotFoundException('Post not found');
     }
 
-    post.likes = post.likes.filter((likeUserId) => {
-      return likeUserId.toString() !== userId;
-    });
-
-    const updatedPost = await post.save();
-
-    return this.toResponseDto(updatedPost);
-  }
-
-  async findById(postId: string): Promise<PostResponseDto> {
-    this.validateObjectId(postId);
-
-    const post = await this.postModel.findById(postId).exec();
-
-    if (!post || !post.isActive) {
-      throw new NotFoundException('Post not found');
-    }
-
-    return this.toResponseDto(post);
+    return this.toResponseDto(post, currentUserId);
   }
 }
