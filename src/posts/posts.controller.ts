@@ -180,15 +180,26 @@ export class PostsController {
     required: true,
     description: 'user id (hasta poner jwt)',
   })
-  toggleLike(
-    @Param('id') postId: string,
-    @Headers('x-user-id') userId: string,
-  ) {
+  like(@Param('id') postId: string, @Headers('x-user-id') userId: string) {
     if (!userId) {
       throw new BadRequestException('User id is required');
     }
 
-    return this.postsService.toggleLike(postId, userId);
+    return this.postsService.like(postId, userId);
+  }
+
+  @Delete(':id/like')
+  @ApiHeader({
+    name: 'x-user-id',
+    required: true,
+    description: 'user id (hasta poner jwt)',
+  })
+  unlike(@Param('id') postId: string, @Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException('User id is required');
+    }
+
+    return this.postsService.unlike(postId, userId);
   }
 
   @Get(':id')

@@ -99,10 +99,31 @@ export class PostsService {
       filter.author = query.userId;
     }
 
+    if (query.sort === 'likes') {
+      const posts = await this.postModel
+        .aggregate([
+          { $match: filter },
+          { $addFields: { likesCount: { $size: '$likes' } } },
+          { $sort: { likesCount: -1, createdAt: -1 } },
+          { $skip: offset },
+          { $limit: limit },
+        ])
+        .exec();
+
+      const populatedPosts = await this.postModel.populate(posts, {
+        path: 'author',
+        select: 'firstName lastName username profileImageUrl',
+      });
+
+      return populatedPosts.map((post) =>
+        this.toResponseDto(post as PostDocument, currentUserId),
+      );
+    }
+
     const posts = await this.postModel
       .find(filter)
       .populate('author', 'firstName lastName username profileImageUrl')
-      .sort(query.sort === 'likes' ? { likes: -1 } : { createdAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(offset)
       .limit(limit)
       .exec();
@@ -178,7 +199,36 @@ export class PostsService {
     }
   }
 
-  async toggleLike(postId: string, userId: string): Promise<PostResponseDto> {
+  // async toggleLike(postId: string, userId: string): Promise<PostResponseDto> {
+  //   this.validateObjectId(postId);
+
+  //   const post = await this.postModel
+  //     .findById(postId)
+  //     .populate('author', 'firstName lastName username profileImageUrl')
+  //     .exec();
+
+  //   if (!post || !post.isActive) {
+  //     throw new NotFoundException('Post not found');
+  //   }
+
+  //   const alreadyLiked = post.likes.some((likeUserId) => {
+  //     return likeUserId.toString() === userId;
+  //   });
+
+  //   if (alreadyLiked) {
+  //     post.likes = post.likes.filter((likeUserId) => {
+  //       return likeUserId.toString() !== userId;
+  //     });
+  //   } else {
+  //     post.likes.push(userId as never);
+  //   }
+
+  //   const updatedPost = await post.save();
+
+  //   return this.toResponseDto(updatedPost, userId);
+  // }
+
+  async like(postId: string, userId: string): Promise<PostResponseDto> {
     this.validateObjectId(postId);
 
     const post = await this.postModel
@@ -190,17 +240,34 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    const alreadyLiked = post.likes.some((likeUserId) => {
-      return likeUserId.toString() === userId;
-    });
+    const alreadyLiked = post.likes.some(
+      (likeUserId) => likeUserId.toString() === userId,
+    );
 
-    if (alreadyLiked) {
-      post.likes = post.likes.filter((likeUserId) => {
-        return likeUserId.toString() !== userId;
-      });
-    } else {
+    if (!alreadyLiked) {
       post.likes.push(userId as never);
     }
+
+    const updatedPost = await post.save();
+
+    return this.toResponseDto(updatedPost, userId);
+  }
+
+  async unlike(postId: string, userId: string): Promise<PostResponseDto> {
+    this.validateObjectId(postId);
+
+    const post = await this.postModel
+      .findById(postId)
+      .populate('author', 'firstName lastName username profileImageUrl')
+      .exec();
+
+    if (!post || !post.isActive) {
+      throw new NotFoundException('Post not found');
+    }
+
+    post.likes = post.likes.filter(
+      (likeUserId) => likeUserId.toString() !== userId,
+    );
 
     const updatedPost = await post.save();
 
