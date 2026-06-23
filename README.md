@@ -26,7 +26,6 @@ En este sprint se implementó la base del servidor, autenticación y persistenci
 * Configuración de variables de entorno.
 * Conexión con Mongoose.
 * Creación de módulos:
-
   * Auth
   * Users
   * Posts
@@ -45,6 +44,36 @@ En este sprint se implementó la base del servidor, autenticación y persistenci
 * Swagger disponible para documentación y pruebas.
 * CORS configurado para permitir consumo desde el frontend.
 
+---
+
+## Sprint 2
+
+En este sprint se incorporó el módulo de publicaciones y las funcionalidades principales de interacción de la red social.
+
+### Funcionalidades incluidas
+
+#### Publicaciones
+
+* Creación de publicaciones asociadas a un usuario.
+* Soporte para publicaciones con o sin imagen.
+* Subida de imágenes de publicaciones a Cloudinary.
+* Baja lógica de publicaciones.
+* Restricción de eliminación únicamente al autor o administrador.
+* Obtención de publicaciones activas.
+* Obtención de una publicación por identificador.
+* Filtro de publicaciones por usuario.
+* Ordenamiento por fecha de creación.
+* Ordenamiento por cantidad de me gusta.
+* Paginación mediante parámetros `offset` y `limit`.
+* Validación de ObjectId para todos los endpoints correspondientes.
+
+#### Me gusta
+
+* Dar me gusta a publicaciones.
+* Quitar me gusta de publicaciones.
+* Restricción para evitar múltiples me gusta del mismo usuario.
+* Cálculo de `likedByCurrentUser` para simplificar la integración con el frontend.
+
 ## Endpoints principales
 
 ### Auth
@@ -60,6 +89,44 @@ POST /auth/login
 ```
 
 Permite iniciar sesión mediante correo electrónico o nombre de usuario y contraseña.
+
+### Posts
+
+```http
+POST /posts
+```
+
+Crea una nueva publicación asociada al usuario.
+
+```http
+GET /posts
+```
+
+Obtiene publicaciones permitiendo ordenar, filtrar y paginar resultados.
+
+```http
+GET /posts/:id
+```
+
+Obtiene una publicación específica.
+
+```http
+DELETE /posts/:id
+```
+
+Realiza la baja lógica de una publicación.
+
+```http
+POST /posts/:id/like
+```
+
+Permite dar me gusta a una publicación.
+
+```http
+DELETE /posts/:id/like
+```
+
+Permite quitar el me gusta de una publicación.
 
 ## Swagger
 
