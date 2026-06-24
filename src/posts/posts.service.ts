@@ -199,35 +199,6 @@ export class PostsService {
     }
   }
 
-  // async toggleLike(postId: string, userId: string): Promise<PostResponseDto> {
-  //   this.validateObjectId(postId);
-
-  //   const post = await this.postModel
-  //     .findById(postId)
-  //     .populate('author', 'firstName lastName username profileImageUrl')
-  //     .exec();
-
-  //   if (!post || !post.isActive) {
-  //     throw new NotFoundException('Post not found');
-  //   }
-
-  //   const alreadyLiked = post.likes.some((likeUserId) => {
-  //     return likeUserId.toString() === userId;
-  //   });
-
-  //   if (alreadyLiked) {
-  //     post.likes = post.likes.filter((likeUserId) => {
-  //       return likeUserId.toString() !== userId;
-  //     });
-  //   } else {
-  //     post.likes.push(userId as never);
-  //   }
-
-  //   const updatedPost = await post.save();
-
-  //   return this.toResponseDto(updatedPost, userId);
-  // }
-
   async like(postId: string, userId: string): Promise<PostResponseDto> {
     this.validateObjectId(postId);
 
