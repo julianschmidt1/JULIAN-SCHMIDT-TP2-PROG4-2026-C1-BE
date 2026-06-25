@@ -74,6 +74,39 @@ En este sprint se incorporó el módulo de publicaciones y las funcionalidades p
 * Restricción para evitar múltiples me gusta del mismo usuario.
 * Cálculo de `likedByCurrentUser` para simplificar la integración con el frontend.
 
+---
+
+## Sprint 3
+
+En este sprint se incorporó la autenticación completa basada en JWT y el módulo de comentarios.
+
+### Funcionalidades incluidas
+
+#### Autenticación
+
+* Implementación completa de autenticación mediante JWT.
+* Generación de token durante login y registro.
+* Inclusión del identificador y rol del usuario dentro del payload del token.
+* Vencimiento automático del token a los 15 minutos.
+* Guard personalizado para proteger endpoints privados.
+* Endpoint para validar sesiones activas (`/auth/authorize`).
+* Endpoint para renovar tokens (`/auth/refresh`).
+* Eliminación del uso de headers personalizados para identificar usuarios.
+
+#### Comentarios
+
+* Creación de comentarios asociados a publicaciones.
+* Obtención paginada de comentarios.
+* Ordenamiento de comentarios por fecha de creación.
+* Edición únicamente por parte del autor del comentario.
+
+#### Seguridad
+
+* Protección mediante JWT de todas las operaciones privadas.
+* Asociación automática del usuario autenticado utilizando la información del token.
+* Restricción de permisos para modificación de publicaciones y comentarios.
+
+
 ## Endpoints principales
 
 ### Auth

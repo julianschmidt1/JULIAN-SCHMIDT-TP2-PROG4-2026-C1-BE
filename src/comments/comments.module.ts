@@ -1,22 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Post, PostSchema } from './schemas/schema';
-import { PostsService } from './posts.service';
-import { PostsController } from './posts.controller';
-import { UploadsModule } from 'src/uploads/uploads.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { type StringValue } from 'ms';
 
+import { CommentsController } from './comments.controller';
+import { CommentsService } from './comments.service';
+import { Comment, CommentSchema } from './schemas/comment.schema';
+import { Post, PostSchema } from 'src/posts/schemas/schema';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
-      {
-        name: Post.name,
-        schema: PostSchema,
-      },
+      { name: Comment.name, schema: CommentSchema },
+      { name: Post.name, schema: PostSchema },
     ]),
-    UploadsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -29,7 +27,7 @@ import { type StringValue } from 'ms';
       }),
     }),
   ],
-  providers: [PostsService],
-  controllers: [PostsController],
+  controllers: [CommentsController],
+  providers: [CommentsService],
 })
-export class PostsModule { }
+export class CommentsModule {}
