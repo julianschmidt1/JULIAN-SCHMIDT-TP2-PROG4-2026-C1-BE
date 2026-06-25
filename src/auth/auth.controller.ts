@@ -9,12 +9,16 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
 import { UploadsService } from '../uploads/uploads.service';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { Req, UseGuards } from '@nestjs/common';
+
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -72,5 +76,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @ApiBearerAuth()
+  @Post('authorize')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  authorize(@Req() request: AuthenticatedRequest) {
+    return request.user;
+  }
+
+  @ApiBearerAuth()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  refresh(@Req() request: AuthenticatedRequest) {
+    return this.authService.refreshToken(request.user);
   }
 }

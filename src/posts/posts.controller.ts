@@ -1,10 +1,10 @@
 import {
-  BadRequestException,
+  Req,
+  UseGuards,
   Body,
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Post,
   Put,
@@ -13,13 +13,16 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { UploadsService } from '../uploads/uploads.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { PostsService } from './posts.service';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { UpdatePostDto } from './dto/update-post-.dto';
+import { Request } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 
 @ApiTags('posts')
 @Controller('posts')
@@ -31,11 +34,8 @@ export class PostsController {
 
   @Post()
   @UseInterceptors(FileInterceptor('image'))
-  @ApiHeader({
-    name: 'x-user-id',
-    required: true,
-    description: 'user id (hasta poner jwt)',
-  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -59,12 +59,10 @@ export class PostsController {
   })
   async create(
     @Body() createPostDto: CreatePostDto,
-    @Headers('x-user-id') userId: string,
+    @Req() request: AuthenticatedRequest,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    if (!userId) {
-      throw new BadRequestException('User id is required');
-    }
+    const userId = request.user.sub;
 
     let imageUrl: string | undefined;
 
@@ -78,16 +76,8 @@ export class PostsController {
 
   @Put(':id')
   @UseInterceptors(FileInterceptor('image'))
-  @ApiHeader({
-    name: 'x-user-id',
-    required: true,
-    description: 'user id (hasta poner jwt)',
-  })
-  @ApiHeader({
-    name: 'x-user-role',
-    required: true,
-    description: 'user role(hasta poner jwt)',
-  })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -111,17 +101,11 @@ export class PostsController {
   async update(
     @Param('id') postId: string,
     @Body() updatePostDto: UpdatePostDto,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') userRole: string,
+    @Req() request: AuthenticatedRequest,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    if (!userId) {
-      throw new BadRequestException('User id is required');
-    }
-
-    if (!userRole) {
-      throw new BadRequestException('User role is required');
-    }
+    const userId = request.user.sub;
+    const userRole = request.user.role;
 
     let imageUrl: string | undefined;
 
@@ -139,71 +123,49 @@ export class PostsController {
     );
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(
     @Query() query: GetPostsQueryDto,
-    @Headers('x-user-id') userId?: string,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.postsService.findAll(query, userId);
+    return this.postsService.findAll(query, request.user.sub);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  @ApiHeader({
-    name: 'x-user-id',
-    required: true,
-    description: 'user id (hasta poner jwt)',
-  })
-  @ApiHeader({
-    name: 'x-user-role',
-    required: true,
-    description: 'administrator o user (hasta poner jwt)',
-  })
-  delete(
-    @Param('id') postId: string,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') userRole: string,
-  ) {
-    if (!userId) {
-      throw new BadRequestException('User id is required');
-    }
-
-    if (!userRole) {
-      throw new BadRequestException('User role is required');
-    }
-
-    return this.postsService.delete(postId, userId, userRole);
+  delete(@Param('id') postId: string, @Req() request: AuthenticatedRequest) {
+    return this.postsService.delete(
+      postId,
+      request.user.sub,
+      request.user.role,
+    );
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post(':id/like')
-  @ApiHeader({
-    name: 'x-user-id',
-    required: true,
-    description: 'user id (hasta poner jwt)',
-  })
-  like(@Param('id') postId: string, @Headers('x-user-id') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('User id is required');
-    }
-
-    return this.postsService.like(postId, userId);
+  like(@Param('id') postId: string, @Req() request: AuthenticatedRequest) {
+    return this.postsService.like(postId, request.user.sub);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Delete(':id/like')
-  @ApiHeader({
-    name: 'x-user-id',
-    required: true,
-    description: 'user id (hasta poner jwt)',
-  })
-  unlike(@Param('id') postId: string, @Headers('x-user-id') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('User id is required');
-    }
-
-    return this.postsService.unlike(postId, userId);
+  unlike(@Param('id') postId: string, @Req() request: AuthenticatedRequest) {
+    return this.postsService.unlike(postId, request.user.sub);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findById(@Param('id') postId: string, @Headers('x-user-id') userId?: string) {
-    return this.postsService.findById(postId, userId);
+  findById(@Param('id') postId: string, @Req() request: AuthenticatedRequest) {
+    return this.postsService.findById(postId, request.user.sub);
   }
+}
+
+interface AuthenticatedRequest extends Request {
+  user: JwtPayload;
 }

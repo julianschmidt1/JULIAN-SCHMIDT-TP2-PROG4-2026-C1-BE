@@ -60,7 +60,10 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    const isAuthor = post.author.toString() === userId;
+    const author = post.author as any;
+    const authorId = author._id ? author._id.toString() : author.toString();
+
+    const isAuthor = authorId === userId;
     const isAdministrator = userRole === 'administrator';
 
     if (!isAuthor && !isAdministrator) {
