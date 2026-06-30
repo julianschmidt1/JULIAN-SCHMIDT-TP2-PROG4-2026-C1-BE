@@ -9,6 +9,8 @@ import { User, UserDocument } from './schemas/user';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import * as bcrypt from 'bcrypt';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -34,6 +36,12 @@ export class UsersService {
       .exec();
   }
 
+  async findAll(): Promise<UserResponseDto[]> {
+    const users = await this.userModel.find().sort({ createdAt: -1 }).exec();
+
+    return users.map((user) => this.toResponseDto(user));
+  }
+
   findByUsername(username: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ username: username.trim() }).exec();
   }
@@ -54,6 +62,38 @@ export class UsersService {
     const createdUser = new this.userModel(createUserDto);
 
     return createdUser.save();
+  }
+
+  async createByAdmin(
+    createUserDto: AdminCreateUserDto,
+    profileImageUrl: string,
+  ): Promise<UserResponseDto> {
+    const existingEmail = await this.findByEmail(createUserDto.email);
+
+    if (existingEmail) {
+      throw new ConflictException('Email is already in use');
+    }
+
+    const existingUsername = await this.findByUsername(createUserDto.username);
+
+    if (existingUsername) {
+      throw new ConflictException('Username is already in use');
+    }
+
+    const passwordHash = await bcrypt.hash(createUserDto.password, 10);
+
+    const createdUser = new this.userModel({
+      ...createUserDto,
+      email: createUserDto.email.toLowerCase().trim(),
+      username: createUserDto.username.toLowerCase().trim(),
+      password: passwordHash,
+      birthDate: new Date(createUserDto.birthDate),
+      profileImageUrl,
+    });
+
+    const savedUser = await createdUser.save();
+
+    return this.toResponseDto(savedUser);
   }
 
   async update(
@@ -101,19 +141,51 @@ export class UsersService {
 
     const updatedUser = await user.save();
 
+    return this.toResponseDto(updatedUser);
+  }
+
+  async disable(userId: string): Promise<UserResponseDto> {
+    const user = await this.userModel.findById(userId).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.isActive = false;
+
+    const updatedUser = await user.save();
+
+    return this.toResponseDto(updatedUser);
+  }
+
+  async restore(userId: string): Promise<UserResponseDto> {
+    const user = await this.userModel.findById(userId).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.isActive = true;
+
+    const updatedUser = await user.save();
+
+    return this.toResponseDto(updatedUser);
+  }
+
+  private toResponseDto(user: UserDocument): UserResponseDto {
     return {
-      id: updatedUser._id.toString(),
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      email: updatedUser.email,
-      username: updatedUser.username,
-      birthDate: updatedUser.birthDate,
-      description: updatedUser.description,
-      profileImageUrl: updatedUser.profileImageUrl,
-      role: updatedUser.role,
-      isActive: updatedUser.isActive,
-      createdAt: updatedUser.createdAt,
-      updatedAt: updatedUser.updatedAt,
+      id: user._id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      username: user.username,
+      birthDate: user.birthDate,
+      description: user.description,
+      profileImageUrl: user.profileImageUrl,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 }

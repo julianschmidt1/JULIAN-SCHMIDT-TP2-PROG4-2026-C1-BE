@@ -107,6 +107,34 @@ En este sprint se incorporó la autenticación completa basada en JWT y el módu
 * Restricción de permisos para modificación de publicaciones y comentarios.
 
 
+---
+
+## Sprint 4
+
+En este sprint se incorporaron las funcionalidades de administración y estadísticas del sistema.
+
+### Usuarios
+
+* Listado de usuarios.
+* Alta de usuarios por parte de administradores.
+* Soporte para creación de administradores y usuarios comunes.
+* Baja lógica de usuarios.
+* Alta lógica de usuarios previamente deshabilitados.
+* Restricción de acceso mediante permisos de administrador.
+* Validación de usuarios deshabilitados durante el inicio de sesión.
+
+### Estadísticas
+
+* Endpoint de cantidad de publicaciones por usuario.
+* Endpoint de cantidad de comentarios por período.
+* Endpoint de cantidad de comentarios por publicación.
+* Filtro por rango de fechas para todas las estadísticas.
+
+### Seguridad
+
+* Implementación de AdminGuard para proteger funcionalidades administrativas.
+* Restricción de acceso a endpoints de administración y estadísticas.
+
 ## Endpoints principales
 
 ### Auth

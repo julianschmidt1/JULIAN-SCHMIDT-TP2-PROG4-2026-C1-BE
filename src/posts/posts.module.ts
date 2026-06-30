@@ -7,6 +7,8 @@ import { UploadsModule } from 'src/uploads/uploads.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { type StringValue } from 'ms';
+import { Comment, CommentSchema } from 'src/comments/schemas/comment.schema';
+import { PostsStatisticsController } from './posts-statistics.controller';
 
 @Module({
   imports: [
@@ -14,6 +16,10 @@ import { type StringValue } from 'ms';
       {
         name: Post.name,
         schema: PostSchema,
+      },
+      {
+        name: Comment.name,
+        schema: CommentSchema,
       },
     ]),
     UploadsModule,
@@ -30,6 +36,6 @@ import { type StringValue } from 'ms';
     }),
   ],
   providers: [PostsService],
-  controllers: [PostsController],
+  controllers: [PostsController, PostsStatisticsController],
 })
-export class PostsModule { }
+export class PostsModule {}

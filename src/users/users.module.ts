@@ -7,6 +7,7 @@ import { UploadsModule } from 'src/uploads/uploads.module';
 import { JwtModule } from '@nestjs/jwt';
 import { type StringValue } from 'ms';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
     }),
   ],
-  providers: [UsersService],
+  providers: [UsersService, AdminGuard],
   exports: [UsersService],
   controllers: [UsersController],
 })

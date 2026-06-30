@@ -15,12 +15,15 @@ import { PostResponseDto } from './dto/post-response.dto';
 import { Post, PostDocument } from './schemas/schema';
 import { GetPostsQueryDto } from './dto/get-posts-query.dto';
 import { UpdatePostDto } from './dto/update-post-.dto';
+import { Comment, CommentDocument } from 'src/comments/schemas/comment.schema';
 
 @Injectable()
 export class PostsService {
   constructor(
     @InjectModel(Post.name)
     private readonly postModel: Model<PostDocument>,
+    @InjectModel(Comment.name)
+    private readonly commentModel: Model<CommentDocument>,
   ) {}
 
   async create(
@@ -164,6 +167,149 @@ export class PostsService {
     const deletedPost = await post.save();
 
     return this.toResponseDto(deletedPost, userId);
+  }
+
+  async getPostsByUserStatistics(from?: string, to?: string) {
+    const dateFilter = this.buildDateFilter(from, to);
+
+    return this.postModel.aggregate([
+      {
+        $match: {
+          isActive: true,
+          ...dateFilter,
+        },
+      },
+      {
+        $group: {
+          _id: '$author',
+          posts: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          let: { authorId: { $toObjectId: '$_id' } },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$_id', '$$authorId'],
+                },
+              },
+            },
+          ],
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      {
+        $project: {
+          _id: 0,
+          userId: '$_id',
+          user: {
+            $concat: ['$user.firstName', ' ', '$user.lastName'],
+          },
+          posts: 1,
+        },
+      },
+      { $sort: { posts: -1 } },
+    ]);
+  }
+
+  async getCommentsOverTimeStatistics(from?: string, to?: string) {
+    const dateFilter = this.buildDateFilter(from, to);
+
+    return this.commentModel.aggregate([
+      {
+        $match: {
+          isActive: true,
+          ...dateFilter,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt',
+            },
+          },
+          comments: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          comments: 1,
+        },
+      },
+      { $sort: { date: 1 } },
+    ]);
+  }
+
+  async getCommentsByPostStatistics(from?: string, to?: string) {
+    const dateFilter = this.buildDateFilter(from, to);
+
+    return this.commentModel.aggregate([
+      {
+        $match: {
+          isActive: true,
+          ...dateFilter,
+        },
+      },
+      {
+        $group: {
+          _id: '$post',
+          comments: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'posts',
+          let: { postId: { $toObjectId: '$_id' } },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$_id', '$$postId'],
+                },
+              },
+            },
+          ],
+          as: 'post',
+        },
+      },
+      { $unwind: '$post' },
+      {
+        $match: {
+          'post.isActive': true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          postId: '$_id',
+          post: '$post.title',
+          comments: 1,
+        },
+      },
+      { $sort: { comments: -1 } },
+    ]);
+  }
+
+  private buildDateFilter(from?: string, to?: string) {
+    const createdAt: Record<string, Date> = {};
+
+    if (from) {
+      createdAt.$gte = new Date(from);
+    }
+
+    if (to) {
+      createdAt.$lte = new Date(to);
+    }
+
+    return Object.keys(createdAt).length > 0 ? { createdAt } : {};
   }
 
   private toResponseDto(
